@@ -35,7 +35,7 @@ uploadRouter.post("/init", async (req: Request, res: Response) => {
 
   // Check worker exists
   const workerCheck = await db.query(
-    "SELECT id FROM workers WHERE id = $1 AND status = 'active'",
+    "SELECT id FROM workers WHERE id = $1",
     [worker_id]
   );
   if (workerCheck.rowCount === 0) {
@@ -51,9 +51,9 @@ uploadRouter.post("/init", async (req: Request, res: Response) => {
   // Insert clip record in PENDING state
   await db.query(
     `INSERT INTO video_clips
-       (id, worker_id, s3_key, status, duration_seconds, device_id, recorded_at)
-     VALUES ($1, $2, $3, 'pending', $4, $5, NOW())`,
-    [clip_id, worker_id, s3_key, duration_seconds ?? null, device_id ?? null]
+       (id, worker_id, raw_s3_key, status, duration_seconds)
+     VALUES ($1, $2, $3, 'pending', $4)`,
+    [clip_id, worker_id, s3_key, duration_seconds ?? null]
   );
 
   return res.json({ upload_url, clip_id, s3_key });
@@ -70,9 +70,9 @@ uploadRouter.post("/complete", async (req: Request, res: Response) => {
   if (!clip_id) return res.status(400).json({ error: "clip_id required" });
 
   const result = await db.query(
-    `UPDATE video_clips SET status = 'uploaded', uploaded_at = NOW()
+    `UPDATE video_clips SET status = 'uploaded'
      WHERE id = $1 AND status = 'pending'
-     RETURNING id, s3_key`,
+     RETURNING id, raw_s3_key AS s3_key`,
     [clip_id]
   );
 
@@ -95,7 +95,7 @@ uploadRouter.post("/complete", async (req: Request, res: Response) => {
 uploadRouter.get("/status/:clip_id", async (req: Request, res: Response) => {
   const { clip_id } = req.params;
   const result = await db.query(
-    "SELECT id, status, uploaded_at, duration_seconds FROM video_clips WHERE id = $1",
+    "SELECT id, status, duration_seconds, created_at FROM video_clips WHERE id = $1",
     [clip_id]
   );
   if (result.rowCount === 0) {
