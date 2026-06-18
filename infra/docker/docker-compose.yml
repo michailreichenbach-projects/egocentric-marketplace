@@ -1,28 +1,54 @@
 version: "3.9"
+
 services:
   postgres:
-    image: postgres:16
+    image: postgres:16-alpine
+    container_name: egocentric_postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: egocentric
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: egocentric_user
+      POSTGRES_PASSWORD: egocentric_pass
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../../packages/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U egocentric_user -d egocentric"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
-    image: redis:7
+    image: redis:7-alpine
+    container_name: egocentric_redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
-
-  api:
-    build: ../../services/api
-    ports:
-      - "3001:3001"
-    depends_on:
-      - postgres
-      - redis
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   pipeline:
-    build: ../../services/pipeline
+    build:
+      context: ../../services/pipeline
+      dockerfile: Dockerfile
+    container_name: egocentric_pipeline
+    restart: unless-stopped
+    env_file:
+      - ../../.env
     depends_on:
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A src.worker worker --loglevel=info --concurrency=2
+
+volumes:
+  postgres_data:
+  redis_data:
