@@ -9,8 +9,9 @@ s3 = boto3.client(
     aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
 )
 
-RAW_BUCKET = os.getenv("AWS_S3_BUCKET_RAW", "egocentric-raw-videos")
-PROCESSED_BUCKET = os.getenv("AWS_S3_BUCKET_PROCESSED", "egocentric-processed-videos")
+RAW_BUCKET = os.getenv("AWS_S3_BUCKET_RAW") or os.getenv("AWS_S3_BUCKET", "egocentric-raw-videos")
+# Default to same bucket as raw — processed/ prefix keeps them separate
+PROCESSED_BUCKET = os.getenv("AWS_S3_BUCKET_PROCESSED") or RAW_BUCKET
 
 def download_clip(s3_key: str, local_path: str):
     s3.download_file(RAW_BUCKET, s3_key, local_path)

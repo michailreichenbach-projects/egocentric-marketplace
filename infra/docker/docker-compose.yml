@@ -42,12 +42,16 @@ services:
     restart: unless-stopped
     env_file:
       - ../../.env
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql://egocentric_user:egocentric_pass@postgres:5432/egocentric
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: celery -A src.worker worker --loglevel=info --concurrency=2
 
 volumes:
   postgres_data:

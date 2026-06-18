@@ -5,6 +5,9 @@ Good enough for dev/testing. Swap for a deep learning model in production.
 import cv2
 import logging
 import shutil
+import subprocess
+import tempfile
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +29,10 @@ def blur_faces(input_path: str, output_path: str, blur_strength: int = 51):
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
+    # Write raw frames to a temp file; ffmpeg will re-encode to H.264 for browser playback
+    tmp_path = output_path + ".raw.mp4"
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+    out = cv2.VideoWriter(tmp_path, fourcc, fps, (width, height))
 
     boxes = []
     frame_count = 0
@@ -56,3 +61,11 @@ def blur_faces(input_path: str, output_path: str, blur_strength: int = 51):
     cap.release()
     out.release()
     logger.info(f"Processed {frame_count} frames")
+
+    # Re-encode to H.264 so browsers can play it
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", tmp_path, "-vcodec", "libx264", "-acodec", "aac",
+         "-movflags", "+faststart", output_path],
+        check=True, capture_output=True
+    )
+    os.remove(tmp_path)

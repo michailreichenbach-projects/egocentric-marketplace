@@ -4,6 +4,7 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import { uploadRouter } from "./routes/upload";
+import { clipsRouter } from "./routes/clips";
 import { db } from "./db";
 
 const app = express();
@@ -25,6 +26,7 @@ app.get("/health", async (_req, res) => {
 
 // Routes
 app.use("/upload", uploadRouter);
+app.use("/clips", clipsRouter);
 
 app.listen(PORT, () => {
   console.log(`API running on http://localhost:${PORT}`);

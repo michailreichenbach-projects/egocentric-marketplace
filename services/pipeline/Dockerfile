@@ -4,12 +4,13 @@ WORKDIR /app
 
 # System deps for OpenCV
 RUN apt-get update && apt-get install -y \
-    libgl1 libglib2.0-0 libsm6 libxrender1 libxext6 \
+    libgl1 libglib2.0-0 libsm6 libxrender1 libxext6 ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src/ ./src/
+COPY start.sh ./start.sh
 
-CMD ["celery", "-A", "src.worker", "worker", "--loglevel=info", "--concurrency=2"]
+CMD ["bash", "start.sh"]
